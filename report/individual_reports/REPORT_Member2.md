@@ -1,10 +1,3 @@
-# Individual Report: Lab 3 - Chatbot vs ReAct Agent
-
-- **Student Name**: [Điền tên thành viên 2]
-- **Student ID**: [Điền MSSV]
-- **Date**: 2026-06-01
-
----
 
 ## I. Technical Contribution (15 Points)
 
