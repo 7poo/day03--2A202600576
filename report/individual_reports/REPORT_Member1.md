@@ -1,7 +1,7 @@
 # Individual Report: Lab 3 - Chatbot vs ReAct Agent
 
 - **Student Name**: Phạm Tiến Hưng    
-- **Student ID**: 22A202600576
+- **Student ID**: 2A202600576
 - **Date**: 2026-06-01
 
 ---
