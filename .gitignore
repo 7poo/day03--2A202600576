@@ -4,3 +4,7 @@ __pycache__/
 *.log
 .DS_Store
 models/
+gradebook.db
+*.db
+__pycache__/
+logs/*.jsonl
