@@ -53,4 +53,116 @@ The code is designed as a **Production Prototype**. It includes:
 
 ---
 
+## 🗺️ System Architecture
+
+### ReAct Agent v1 — Core Loop
+
+```mermaid
+flowchart TD
+    A([User Input]) --> B[_build_prompt\nadd history]
+    B --> C[LLMProvider.generate\nOpenAI / Gemini / Local]
+    C --> D{Final Answer?}
+    D -- Yes --> E([Return Answer])
+    D -- No --> F[_parse_action\n3 fallback strategies]
+    F --> G{Valid JSON?}
+    G -- No --> H[Append PARSE_ERROR\nObservation to history]
+    H --> I{steps < max_steps?}
+    G -- Yes --> J[_validate_tool_args\ncheck required fields]
+    J --> K{Args valid?}
+    K -- No --> L[Inject ARG_ERROR hint\ninto Observation]
+    L --> I
+    K -- Yes --> M[_execute_tool\nlookup + invoke callable]
+    M --> N{Tool exists?}
+    N -- No --> O[Log HALLUCINATION_ERROR\nReturn error message]
+    N -- Yes --> P[Run tool function\ncatch TypeError + Exception]
+    O --> Q[Append Thought+Action+Obs\nto history]
+    P --> Q
+    Q --> I
+    I -- Yes --> B
+    I -- No --> R([AGENT TIMEOUT\nmax_steps exceeded])
+```
+
+### ReAct Agent v2 — Per-Step Retry Loop
+
+```mermaid
+flowchart TD
+    A([User Input]) --> B[steps = 0]
+    B --> C{steps < max_steps?}
+    C -- No --> Z([TIMEOUT])
+    C -- Yes --> D[steps += 1\nretries = 0]
+    D --> E[LLMProvider.generate]
+    E --> F{Final Answer?}
+    F -- Yes --> G([Return Answer])
+    F -- No --> H{Parse Action JSON?}
+    H -- No --> I{retries <= max_retries?}
+    I -- Yes --> J[retries += 1\nInject targeted FORMAT hint]
+    J --> E
+    I -- No --> C
+    H -- Yes --> K{Validate Args Schema?}
+    K -- Fail --> L{retries <= max_retries?}
+    L -- Yes --> M[retries += 1\nInject ARG hint with example]
+    M --> E
+    L -- No --> N[Fall through to tool]
+    K -- Pass --> N
+    N --> O[_execute_tool]
+    O --> P[Append to history]
+    P --> C
+```
+
+### Telemetry Data Flow
+
+```mermaid
+flowchart LR
+    A[ReActAgent.run] -->|track_request| B[PerformanceTracker]
+    A -->|log_event| C[IndustryLogger]
+    B --> D[(metrics in-memory\nP50/P95/P99)]
+    C --> E[(logs/YYYY-MM-DD.log\nJSON per line)]
+    D --> F[Streamlit Dashboard\nmonitor.py]
+    E --> F
+    F --> G([Browser UI\nDashboard / Agent / Chatbot])
+```
+
+---
+
+## 📁 Project Structure
+
+```
+Lab3__Team056-ritvien/
+├── chatbot.py                     # Baseline chatbot (3 test cases)
+├── monitor.py                     # Streamlit dashboard (4 pages)
+├── src/
+│   ├── agent/
+│   │   ├── agent.py               # ReAct Agent v1
+│   │   └── agent_v2.py            # ReAct Agent v2 (few-shot + schema validation)
+│   ├── core/
+│   │   ├── llm_provider.py        # Abstract base class
+│   │   ├── openai_provider.py
+│   │   ├── gemini_provider.py
+│   │   └── local_provider.py      # Phi-3 via llama-cpp-python
+│   ├── telemetry/
+│   │   ├── logger.py              # JSON structured logging
+│   │   └── metrics.py             # P50/P95/P99 + cost tracking
+│   └── tools/
+│       ├── data_access.py         # SQLite / CSV backend
+│       ├── db_tool.py             # Student info query tool
+│       ├── model_evaluator.py     # LLM-based grader tool
+│       └── scoring_engine.py      # Score computation tool
+├── experiments/
+│   ├── ablation_study.py          # v1 vs v2 comparison script
+│   └── results/
+│       └── ablation_results.md    # Pre-captured results
+├── logs/
+│   └── sample_trace_2026-06-01.log  # Sample runtime trace (JSON)
+├── scripts/
+│   └── init_db.py                 # Initialize SQLite from CSV
+├── tests/
+│   ├── test_react_agent.py
+│   └── test_local.py
+└── report/
+    └── group_report/
+        └── GROUP_REPORT_Team056.md
+```
+
+---
+
 *Happy Coding! Let's build agents that actually work.*
